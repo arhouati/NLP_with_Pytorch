@@ -130,3 +130,6 @@ dmypy.json
 
 # pycharm files
 .idea/
+
+# do not commit dataset
+*.csv
