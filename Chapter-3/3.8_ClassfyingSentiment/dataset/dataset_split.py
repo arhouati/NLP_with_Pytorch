@@ -24,8 +24,8 @@ by_rating = collections.defaultdict(list)
 for _, row in review_subset.iterrows():
     by_rating[row.rating].append(row.to_dict())
     # important get only a few example line for a debug purpose
-    if _ == 100:
-        break
+    #if _ == 100:
+    #    break
 
 final_list = []
 np.random.seed(args.seed)
