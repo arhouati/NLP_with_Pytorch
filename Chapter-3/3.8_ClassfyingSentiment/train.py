@@ -41,7 +41,7 @@ args = Namespace(
     batch_size = 128,
     early_stopping_criteria = 5,
     learning_rate = 0.001,
-    num_epoch = 10,
+    num_epoch = 1,
     seed = 1337
 )
 
@@ -189,4 +189,43 @@ train_state['test_acc'] = running_acc
 
 print("\n Test Loss: {}".format(train_state['test_loss']))
 print("\n Test Acc: {}".format(train_state['test_acc']))
+
+def predict_rating(review, classifier, vectorizer,
+                   decision_threshold=0.5):
+    """
+    Predict the rating of a given review
+
+    :param review (str):   the text to review
+    :param classifier (ReviewClassifier): the trained model
+    :param vectorizer (ReviewVectorizer): The corresponding verctorizer
+    :param decision_threshold (float): the numerical boundry which seperates negative and positive classes
+    :return: return the rating (positive or negative)
+    """
+
+    vectorizer_review = torch.tensor(vectorizer.vectorize(review))
+    result = classifier(vectorizer_review.view(1, - 1).float(), apply_sigmoid=True)
+
+    index = 1
+    if result < decision_threshold:
+        index = 0
+
+    return vectorizer.rating_vocab.lookup_index(index)
+
+rating = { 1: "negative", 2: "positive"}
+test_reviw = "this is a pretty awesome book"
+prediction = predict_rating(test_reviw, classifier, vectorizer)
+print("{} -> {}".format(test_reviw, rating[prediction]))
+
+# Save the model
+torch.save(classifier.state_dict(), "./saved_model/classifier")
+
+# Load the model
+model = ReviewClassifier(num_features=len(vectorizer.review_vocab))
+model.load_state_dict(torch.load("./saved_model/classifier"))
+model.eval()
+
+test_reviw = "this is a good book"
+prediction = predict_rating(test_reviw, model, vectorizer)
+print("{} -> {}".format(test_reviw, rating[prediction]))
+
 
