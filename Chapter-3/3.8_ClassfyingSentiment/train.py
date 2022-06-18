@@ -1,5 +1,7 @@
 from argparse import Namespace
 
+from tqdm import tqdm
+
 import torch.cuda
 import torch.nn as nn
 import torch.optim as optim
@@ -39,7 +41,7 @@ args = Namespace(
     batch_size = 128,
     early_stopping_criteria = 5,
     learning_rate = 0.001,
-    num_epoch = 100,
+    num_epoch = 10,
     seed = 1337
 )
 
@@ -73,15 +75,16 @@ classifier = classifier.to(args.device)
 loss_func = nn.BCEWithLogitsLoss()
 optimizer = optim.Adam(classifier.parameters(), lr=args.learning_rate)
 
-
 # the training loop
-for epoch_index in  range(args.num_epoch):
+for epoch_index in range(args.num_epoch):
 
+    print(f"\n Epoch {epoch_index+1}/{args.num_epoch}")
     train_state['epoch_index'] = epoch_index
 
     # Iterate  over training dataset
     # setup : batch generator, set loss and acc to 0, set train mode on
     dataset.set_split('train')
+    total = len(dataset)
     batch_generator = generte_batches(dataset,
                                         batch_size=args.batch_size,
                                         device=args.device)
@@ -90,7 +93,8 @@ for epoch_index in  range(args.num_epoch):
     running_acc = 0.0
     classifier.train()
 
-    for batch_index, batch_dict in enumerate(batch_generator):
+    for batch_index, batch_dict in enumerate(tqdm(batch_generator, total=total//args.batch_size)):
+
         # the training routine is 5 steps
 
         # step 1 zero gradients
@@ -123,6 +127,7 @@ for epoch_index in  range(args.num_epoch):
     # Iterate  over training dataset
     # setup : batch generator, set loss and acc to 0, set train mode on
     dataset.set_split('val')
+    total = len(dataset)
     batch_generator = generte_batches(dataset,
                                       batch_size=args.batch_size,
                                       device=args.device)
@@ -131,7 +136,9 @@ for epoch_index in  range(args.num_epoch):
     running_acc = 0.0
     classifier.eval()
 
-    for batch_index, batch_dict in enumerate(batch_generator):
+    print("\n >>>> Validation")
+    for batch_index, batch_dict in enumerate(tqdm(batch_generator, total=total//args.batch_size)):
+
         # the training routine is 5 steps
 
         # step 1. compute the output
@@ -150,9 +157,36 @@ for epoch_index in  range(args.num_epoch):
     train_state['val_loss'].append(running_loss)
     train_state['val_acc'].append(running_acc)
 
+# Test Set Evaluation
+dataset.set_split('test')
+total = len(dataset)
+batch_generator = generte_batches(dataset,
+                                  batch_size=args.batch_size,
+                                  device=args.device)
 
+running_loss = 0
+running_acc = 0
+classifier.eval()
 
+print("\n >>> Testing")
+for batch_index, batch_dict in enumerate(tqdm(batch_generator, total=total//args.batch_size)):
 
+    # step 1. compute the output
+    y_pred = classifier(x_in=batch_dict['x_data'].float(), apply_sigmoid=True)
 
+    # step 2. compute the loss
+    loss = loss_func(y_pred, batch_dict['y_label'].float())
+    loss_batch = loss.item()
+    running_loss += (loss_batch - running_loss) / (batch_index + 1)
 
+    # ------------------
+    # step 3. compute the accuarcy
+    acc_batch = accuracy_score(y_pred > 0.5, batch_dict['y_label'])
+    running_acc += (acc_batch - running_acc) / (batch_index + 1)
+
+train_state['test_loss'] = running_loss
+train_state['test_acc'] = running_acc
+
+print("\n Test Loss: {}".format(train_state['test_loss']))
+print("\n Test Acc: {}".format(train_state['test_acc']))
 

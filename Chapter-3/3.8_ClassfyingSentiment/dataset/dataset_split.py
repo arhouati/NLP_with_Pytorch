@@ -10,7 +10,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Split DataSet Arguments.')
 parser.add_argument('--seed', dest='seed', type=int, help='seed argument')
 parser.add_argument('--train', dest='train_propostion', type=float, help='seed argument', default="0.7")
-parser.add_argument('--val', dest='val_propostion', type=float, help='seed argument', default="0.3")
+parser.add_argument('--val', dest='val_propostion', type=float, help='seed argument', default="0.2")
 parser.add_argument('--test', dest='test_propostion', type=float, help='seed argument', default="0.1")
 
 args = parser.parse_args()
